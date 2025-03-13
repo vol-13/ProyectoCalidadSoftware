@@ -1,21 +1,23 @@
 ﻿using ProyectoCalidadSoftware.Data;
 using ProyectoCalidadSoftware.Models;
+using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Collections.Generic;
 
 namespace ProyectoCalidadSoftware.Services
 {
     public class FileDatabaseService
     {
         private readonly EmpresaDbContext _context;
-        private readonly string _filePath = @"C:\Users\v-jos\Desktop\U\2025\DataFlowManager\empleados.txt"; // Solo la ruta
+        private readonly ILogger<FileDatabaseService> _logger;
+        private readonly string _filePath = @"";
 
-
-        public FileDatabaseService(EmpresaDbContext context)
+        public FileDatabaseService(EmpresaDbContext context, ILogger<FileDatabaseService> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         // Leer empleados desde el archivo .txt
@@ -25,6 +27,7 @@ namespace ProyectoCalidadSoftware.Services
 
             if (File.Exists(_filePath))
             {
+                _logger.LogInformation($"El archivo {_filePath} existe. Iniciando lectura.");
                 var lineas = File.ReadAllLines(_filePath);
 
                 foreach (var linea in lineas)
@@ -35,7 +38,6 @@ namespace ProyectoCalidadSoftware.Services
                     {
                         var empleado = new Empleado
                         {
-                            Id = int.Parse(datos[0]),
                             Nombre = datos[1].Trim(),
                             Cargo = datos[2].Trim(),
                             DepartamentoId = int.Parse(datos[3].Trim())
@@ -44,6 +46,10 @@ namespace ProyectoCalidadSoftware.Services
                         empleados.Add(empleado);
                     }
                 }
+            }
+            else
+            {
+                _logger.LogWarning($"El archivo {_filePath} no se encuentra o no es accesible.");
             }
 
             return empleados;
@@ -54,25 +60,24 @@ namespace ProyectoCalidadSoftware.Services
         {
             foreach (var empleado in empleados)
             {
-                // Verificar si el empleado ya existe
                 var empleadoExistente = _context.Empleado.FirstOrDefault(e => e.Id == empleado.Id);
 
                 if (empleadoExistente == null)
                 {
-                    // Si no existe, agregarlo a la base de datos
+                    _logger.LogInformation($"Empleado {empleado.Nombre} no existe en la base de datos, se insertará.");
                     _context.Empleado.Add(empleado);
                 }
                 else
                 {
-                    // Si existe, actualizar los datos
+                    _logger.LogInformation($"Empleado {empleado.Nombre} ya existe, se actualizará.");
                     empleadoExistente.Nombre = empleado.Nombre;
                     empleadoExistente.Cargo = empleado.Cargo;
                     empleadoExistente.DepartamentoId = empleado.DepartamentoId;
                 }
             }
 
-            // Guardar los cambios en la base de datos
             _context.SaveChanges();
+            _logger.LogInformation("Se guardaron los cambios en la base de datos.");
         }
 
         // Eliminar empleados que ya no están en el archivo
@@ -80,7 +85,6 @@ namespace ProyectoCalidadSoftware.Services
         {
             var empleadosEnBaseDeDatos = _context.Empleado.ToList();
 
-            // Eliminar empleados que no están en el archivo
             foreach (var empleado in empleadosEnBaseDeDatos)
             {
                 if (!empleadosDesdeArchivo.Any(e => e.Id == empleado.Id))

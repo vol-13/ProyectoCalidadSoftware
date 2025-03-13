@@ -1,13 +1,13 @@
 ﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ProyectoCalidadSoftware.Data;
-using Microsoft.Extensions.DependencyInjection; // Necesario para IServiceScopeFactory
+using ProyectoCalidadSoftware.Services;
 using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ProyectoCalidadSoftware.Services
+namespace ProyectoCalidadSoftware
 {
     public class Worker : BackgroundService
     {
@@ -28,10 +28,11 @@ namespace ProyectoCalidadSoftware.Services
                 {
                     _logger.LogInformation("Iniciando procesamiento...");
 
-                    // Usar el scope para resolver DbContext
+                    // Usar el scope para resolver DbContext y FileDatabaseService
                     using (var scope = _scopeFactory.CreateScope())
                     {
                         var context = scope.ServiceProvider.GetRequiredService<EmpresaDbContext>();
+                        var fileDatabaseService = scope.ServiceProvider.GetRequiredService<FileDatabaseService>();
 
                         // Consultar empleados desde el DbContext
                         var empleados = context.Empleado.ToList();
@@ -43,6 +44,20 @@ namespace ProyectoCalidadSoftware.Services
                         else
                         {
                             _logger.LogWarning("No se encontraron empleados.");
+                        }
+
+                        // Leer empleados desde el archivo
+                        var empleadosDesdeArchivo = fileDatabaseService.LeerEmpleadosDesdeArchivo();
+                        if (empleadosDesdeArchivo.Any())
+                        {
+                            _logger.LogInformation($"Se han encontrado {empleadosDesdeArchivo.Count} empleados desde el archivo.");
+                            // Insertar o actualizar empleados en la base de datos
+                            fileDatabaseService.InsertarEmpleadosEnBaseDeDatos(empleadosDesdeArchivo);
+                            _logger.LogInformation("Empleados insertados/actualizados en la base de datos.");
+                        }
+                        else
+                        {
+                            _logger.LogWarning("No se encontraron empleados en el archivo.");
                         }
                     }
 

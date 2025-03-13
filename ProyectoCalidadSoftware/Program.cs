@@ -1,8 +1,8 @@
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ProyectoCalidadSoftware.Data;
 using ProyectoCalidadSoftware.Services;
-using Microsoft.EntityFrameworkCore;
 using Serilog;
 
 namespace ProyectoCalidadSoftware
@@ -11,25 +11,28 @@ namespace ProyectoCalidadSoftware
     {
         public static void Main(string[] args)
         {
-            // Configura y corre la aplicaci�n
+            // Crear y ejecutar la aplicación
             CreateHostBuilder(args).Build().Run();
         }
+
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
                 .UseSerilog((context, services, configuration) =>
                     configuration
-                        .WriteTo.Console() // Escribir en consola
-                        .WriteTo.File("logs/app.log", rollingInterval: RollingInterval.Day)) // Escribir en archivo
+                        .WriteTo.Console()  // Mostrar en consola
+                        .WriteTo.File("logs/app.log", rollingInterval: RollingInterval.Day)  // Escribir en archivo
+                        .MinimumLevel.Debug())  // Mínimo nivel de log para depuración
                 .ConfigureServices((context, services) =>
                 {
-                    // Registro del DbContext
+                    // Registrar DbContext con la cadena de conexión
                     services.AddDbContext<EmpresaDbContext>(options =>
                         options.UseSqlServer(context.Configuration.GetConnectionString("EmpresaDB")));
 
-                    // Registrar Worker como IHostedService
-                    services.AddHostedService<Worker>(); // Registrar Worker como un IHostedService
+                    // Registrar FileDatabaseService como Scoped
+                    services.AddScoped<FileDatabaseService>();  
+
+                    // Registrar Worker como IHostedService con ciclo de vida Singleton
+                    services.AddSingleton<IHostedService, Worker>(); 
                 });
-
-
     }
 }
