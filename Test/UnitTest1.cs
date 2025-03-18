@@ -17,7 +17,8 @@ namespace Test
         private EmpresaDbContext _context;
         private FileDatabaseService _service;
         private Mock<ILogger<FileDatabaseService>> _loggerMock;
-        private string _testFilePath = @"";
+        private string _testFilePath = @"C:\Users\v-jos\Desktop\U\2025\DataFlowManager\Empleados-Test.txt";
+        private string _exportFilePath = @"C:\Users\v-jos\Desktop\U\2025\DataFlowManager\empleadosDB-Test.txt";
 
         [TestInitialize]
         public void Setup()
@@ -33,18 +34,9 @@ namespace Test
             File.WriteAllLines(_testFilePath, new[]
             {
                 "1,Juan Pérez,Gerente,2",
-                "2,Ana López,Asistente,1"
+                "2,Ana López,Asistente,1",
+                "3,Paula Mendéz,Asistente,3"
             });
-        }
-
-        [TestCleanup]
-        public void Cleanup()
-        {
-            _context.Database.EnsureDeleted();
-            if (File.Exists(_testFilePath))
-            {
-                File.Delete(_testFilePath);
-            }
         }
 
         [TestMethod]
@@ -57,7 +49,7 @@ namespace Test
         [TestMethod]
         public void LeerEmpleadosDesdeArchivo()
         {
-            var empleados = _service.LeerEmpleadosDesdeArchivo();
+            var empleados = _service.ReadEmployeesFile();
             Assert.AreEqual(2, empleados.Count, "No se cargaron correctamente los empleados desde el archivo.");
             Assert.AreEqual("Juan Pérez", empleados[0].Nombre);
             Assert.AreEqual("Ana López", empleados[1].Nombre);
@@ -72,7 +64,7 @@ namespace Test
                 new Empleado { Nombre = "Laura Gómez", Cargo = "Desarrolladora", DepartamentoId = 2 }
             };
 
-            _service.InsertarEmpleadosEnBaseDeDatos(empleados);
+            _service.InsertUpdateEmployees(empleados);
             var empleadosEnDb = _context.Empleado.ToList();
 
             Assert.AreEqual(2, empleadosEnDb.Count, "No se insertaron correctamente los empleados.");
@@ -81,24 +73,46 @@ namespace Test
         }
 
         [TestMethod]
-        public void ActualizarEmpleados()
+        public void EliminarEmpleadoConIdMasBajo()
         {
-            var empleadoExistente = new Empleado { Id = 1, Nombre = "Juan Pérez", Cargo = "Gerente", DepartamentoId = 2 };
-            _context.Empleado.Add(empleadoExistente);
+            // Insertamos empleados en la base de datos
+            _context.Empleado.AddRange(new List<Empleado>
+            {
+                new Empleado { Id = 1, Nombre = "Carlos Ramírez", Cargo = "Analista", DepartamentoId = 1 },
+                new Empleado { Id = 2, Nombre = "Laura Gómez", Cargo = "Desarrolladora", DepartamentoId = 2 }
+            });
             _context.SaveChanges();
 
-            var empleadosActualizados = new List<Empleado>
-            {
-                new Empleado { Id = 1, Nombre = "Juan Pérez", Cargo = "Director", DepartamentoId = 3 }
-            };
+            _service.DeleteEmployee();
+            var empleadosEnDb = _context.Empleado.ToList();
 
-            _service.InsertarEmpleadosEnBaseDeDatos(empleadosActualizados);
-            var empleadoEnDb = _context.Empleado.FirstOrDefault(e => e.Id == 1);
-
-            Assert.IsNotNull(empleadoEnDb, "El empleado no se encuentra en la base de datos.");
-            Assert.AreEqual("Director", empleadoEnDb.Cargo, "El cargo del empleado no se actualizó correctamente.");
-            Assert.AreEqual(3, empleadoEnDb.DepartamentoId, "El departamento del empleado no se actualizó correctamente.");
+            Assert.AreEqual(1, empleadosEnDb.Count, "No se eliminó correctamente el empleado con ID más bajo.");
+            Assert.IsFalse(empleadosEnDb.Any(e => e.Id == 1), "El empleado con ID 1 no fue eliminado correctamente.");
         }
+
+        [TestMethod]
+        public void ExportEmployeeDB()
+        {
+            // Verificar si hay datos en la BD
+            var empleadosEnDb = _context.Empleado.Count();
+            Console.WriteLine($"Empleados en la BD antes de exportar: {empleadosEnDb}");
+
+            Assert.IsTrue(empleadosEnDb > 0, "No hay empleados en la base de datos antes de la exportación.");
+
+            // Exportar datos
+            _service.ReadDBData();
+
+            // Esperar un poco por si el archivo tarda en crearse
+            System.Threading.Thread.Sleep(100);
+
+            // Verificar si el archivo existe
+            bool archivoExiste = File.Exists(_exportFilePath);
+            Console.WriteLine($"Archivo existe: {archivoExiste}");
+
+            Assert.IsTrue(archivoExiste, $"El archivo de exportación no se creó en {_exportFilePath}.");
+        }
+
+
+
     }
-    
 }

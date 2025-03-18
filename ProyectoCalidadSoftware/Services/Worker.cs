@@ -39,22 +39,32 @@ namespace ProyectoCalidadSoftware
 
                         if (empleados.Any())
                         {
-                            _logger.LogInformation($"Se han encontrado {empleados.Count} empleados.");
+                            _logger.LogInformation($"Se han encontrado {empleados.Count} empleados en la base de datos.");
                         }
                         else
                         {
-                            _logger.LogWarning("No se encontraron empleados.");
+                            _logger.LogWarning("No se encontraron empleados en la base de datos.");
                         }
 
                         // Leer empleados desde el archivo
-                        var empleadosDesdeArchivo = fileDatabaseService.LeerEmpleadosDesdeArchivo();
+                        var empleadosDesdeArchivo = fileDatabaseService.ReadEmployeesFile();
                         if (empleadosDesdeArchivo.Any())
                         {
                             _logger.LogInformation($"Se han encontrado {empleadosDesdeArchivo.Count} empleados desde el archivo.");
+
                             // Insertar o actualizar empleados en la base de datos
-                            fileDatabaseService.InsertarEmpleadosEnBaseDeDatos(empleadosDesdeArchivo);
+                            fileDatabaseService.InsertUpdateEmployees(empleadosDesdeArchivo);
                             _logger.LogInformation("Empleados insertados/actualizados en la base de datos.");
+
+                            // Eliminar empleados que no están en el archivo
+                            fileDatabaseService.DeleteEmployee();
+                            _logger.LogInformation("Empleados eliminados de la base de datos que ya no están en el archivo.");
+
+                            //Listar la info desde la DB en un archivo .txt
+                            fileDatabaseService.ReadDBData();
+                            _logger.LogInformation("Empleados listados de la base de datos en un archivo.");
                         }
+
                         else
                         {
                             _logger.LogWarning("No se encontraron empleados en el archivo.");
