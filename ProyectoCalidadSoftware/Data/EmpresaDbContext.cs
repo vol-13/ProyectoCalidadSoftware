@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ProyectoCalidadSoftware.Models;
-
+//pruebas
 namespace ProyectoCalidadSoftware.Data
 {
     public class EmpresaDbContext : DbContext
