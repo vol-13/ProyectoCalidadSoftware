@@ -78,8 +78,8 @@ namespace Test
             // Insertamos empleados en la base de datos
             _context.Empleado.AddRange(new List<Empleado>
             {
-                new Empleado { Id = 1, Nombre = "Carlos Ramírez", Cargo = "Analista", DepartamentoId = 1 },
-                new Empleado { Id = 2, Nombre = "Laura Gómez", Cargo = "Desarrolladora", DepartamentoId = 2 }
+                new Empleado { Nombre = "Carlos Ramírez", Cargo = "Analista", DepartamentoId = 1 },
+                new Empleado { Nombre = "Laura Gómez", Cargo = "Desarrolladora", DepartamentoId = 2 }
             });
             _context.SaveChanges();
 
